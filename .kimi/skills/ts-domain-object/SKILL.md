@@ -56,8 +56,8 @@ Read `references/template.ts` and substitute:
 Keep the structure byte-for-byte identical outside those substitutions. In particular:
 
 - The brand must be a module-private `Symbol(...)` declared with `const Brand = Symbol("DOMAIN_NAME")`. Never export it.
-- The type must be `Readonly<z.infer<typeof Schema>> & { [Brand]: true }`.
-- The constructor must be a non-exported `create` function that calls `Object.freeze` and casts to the branded type.
+- The type must be explicit: `Readonly<{ /* fields */ }> & { [Brand]: true }`. Do not derive it from `z.infer<typeof Schema>`.
+- The constructor must be a non-exported `create` function that calls `Object.freeze` and casts to the branded type. It takes the explicit raw shape, not `z.infer<typeof Schema>`.
 - The parse function must return `{ ok: true; value: T } | { ok: false; errors: z.ZodError }` — a discriminated union on `ok`, not thrown exceptions, not `T | null`.
 
 ### Step 4: Generate the test file
@@ -156,6 +156,45 @@ Then you produce `user-profile.test.ts` with:
 - Three immutability tests
 - Two brand-integrity tests (one `@ts-expect-error`, one positive assignment)
 
+## Single-field value objects (branded primitives)
+
+When a value object has exactly one field (e.g. `ApplicationId`, `Email`, `OrderId`), prefer a **branded primitive** over an object wrapper:
+
+```ts
+const ApplicationIdSchema = z.union(
+  [z.literal("expair"), z.literal("simba")],
+  { message: "Application id must be expair or simba" },
+);
+
+const Brand = Symbol("ApplicationId");
+export type ApplicationId = ("expair" | "simba") & { [Brand]: true };
+
+function create(raw: "expair" | "simba"): ApplicationId {
+  return Object.freeze(raw) as ApplicationId;
+}
+
+export function parseApplicationId(
+  input: unknown,
+): { ok: true; value: ApplicationId } | { ok: false; errors: z.ZodError } {
+  const result = ApplicationIdSchema.safeParse(input);
+  if (!result.success) return { ok: false, errors: result.error };
+  return { ok: true, value: create(result.data) };
+}
+```
+
+Benefits over `{ value: ... }`:
+- No wrapper object — the string IS the value
+- No `result.value.value` double-access awkwardness
+- Natural equality (`===` works)
+- Fewer allocations
+
+Test adaptations:
+- `parseApplicationId("expair")` instead of `parseApplicationId({ value: "expair" })`
+- `result.value` is the string directly
+- Cast when asserting against plain literals: `expect(result.value as string).toBe("expair")`
+- Use strict-mode string index assignment for the mutation test: `(s as any)[0] = "x"`
+- Two parses of the same value are `toBe` equal (primitives are interned), not `not.toBe`
+
 ## Anti-patterns to avoid
 
 - **Exporting the brand Symbol.** Kills opacity — external code can forge values. Keep it module-private.
@@ -164,7 +203,7 @@ Then you produce `user-profile.test.ts` with:
 - **Omitting `Object.freeze`.** The `Readonly<>` type is compile-time only; without freeze, runtime mutation silently succeeds.
 - **Using `flattenError` in tests.** Its Zod 4 return type isn't inferred from the schema; property access fails typecheck. Use `result.errors.issues.find(...)` instead.
 - **Putting tests in a mirrored `test/` directory.** Co-locate. `bun:test` discovers `*.test.ts` anywhere.
-- **Using `z.infer` as the exported type.** That's the unbranded shape. Export only the branded intersection.
+- **Using `z.infer` in the type definition.** The domain type should be explicit and self-describing, not derived from the Zod schema. The schema validates; the type defines the domain model.
 - **Generic test names like `"works"`.** Each test should read as an assertion about the pattern's guarantees.
 
 ## File naming
