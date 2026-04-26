@@ -1,19 +1,19 @@
 {
-  "name": "sse-bridge",
-  "scripts": {
-    "typecheck": "tsc --noEmit",
-    "dev": "tsc --noEmit && bun run --hot src/index.ts",
-    "test": "bun test",
-    "test:watch": "bun test --watch",
-    "test:coverage": "bun test --coverage"
-  },
-  "dependencies": {
-    "hono": "^4.12.14",
-    "pino": "^10.3.1",
-    "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "^6.0.2"
-  }
+    "name": "sse-bridge",
+    "scripts": {
+        "typecheck": "tsc --noEmit",
+        "dev": "tsc --noEmit && bun run --hot src/index.ts",
+        "test": "bun test",
+        "test:watch": "bun test --watch",
+        "test:coverage": "bun test --coverage"
+    },
+    "dependencies": {
+        "hono": "^4.12.14",
+        "pino": "^10.3.1",
+        "zod": "^4.3.6"
+    },
+    "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^6.0.2"
+    }
 }
