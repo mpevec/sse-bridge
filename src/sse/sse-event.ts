@@ -1,7 +1,6 @@
 import type { Envelope } from "./core/model/envelope";
 import type { SSEMessage } from "hono/streaming";
 
-// todo: whats the location, should be in the Envelope file???
 // Its not a domain interface but infrastructure, so we do not need to parse it.
 // We already trust Envelope, since its domain.
 export function toSSEMessage(cloudEvent: Envelope): SSEMessage {

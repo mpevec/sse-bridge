@@ -1,57 +1,17 @@
 import { Hono } from "hono";
 import { streamSSE, SSEStreamingApi } from "hono/streaming";
-import pino from "pino";
-import { ApplicationId, parseApplicationId } from "./core/model/applicationId";
-import { Envelope, parseEnvelope } from "./core/model/envelope";
-import { serializeSSE, toSSEMessage } from "./sse-event";
-import { errorMessage } from "./core/util/errorMessage";
-import type { SSEMessage } from "hono/streaming";
-
-export const logger = pino({
-    level: "info",
-    base: {
-        service: "sse-bridge",
-        pid: process.pid,
-    },
-    timestamp: pino.stdTimeFunctions.isoTime,
-    formatters: {
-        level(label) {
-            return { level: label }; // "info" not 30
-        },
-    },
-});
-
-const streams = new Map<string, Set<SSEStreamingApi>>();
-const streamIntervals = new WeakMap<
-    SSEStreamingApi,
-    ReturnType<typeof setInterval>
->();
-
-function addStream(appId: string, stream: SSEStreamingApi): void {
-    let set = streams.get(appId);
-    if (!set) {
-        set = new Set();
-        streams.set(appId, set);
-    }
-    set.add(stream);
-}
-
-function removeStream(appId: ApplicationId, stream: SSEStreamingApi): void {
-    const set = streams.get(appId);
-    if (set) {
-        set.delete(stream);
-        if (set.size === 0) {
-            streams.delete(appId);
-        }
-    }
-}
-
-function cleanupStream(appId: ApplicationId, stream: SSEStreamingApi): void {
-    const hb = streamIntervals.get(stream);
-    hb && clearInterval(hb);
-
-    removeStream(appId, stream);
-}
+import {
+    ApplicationId,
+    parseApplicationId,
+} from "./sse/core/model/applicationId";
+import { errorMessage } from "./sse/core/util/errorMessage";
+import { logger } from "./core/logger";
+import {
+    addStream,
+    cleanupStream,
+    streamIntervals,
+} from "./sse/core/service/broadcast";
+import { sseRouter } from "./sse/router";
 
 const app = new Hono();
 
@@ -64,46 +24,7 @@ app.get("/health/live", (c) => {
     return c.json({ status: "ok", uptime: process.uptime() });
 });
 
-// posting events
-app.post("/events", async (c) => {
-    let rawBody = await c.req.json();
-
-    const result = parseEnvelope(rawBody);
-
-    if (!result.ok) {
-        logger.warn({
-            action: "envelope.invalid",
-            reason: result.errors.issues,
-        });
-        return c.json({ error: result.errors.issues }, 400);
-    }
-
-    const event: Envelope = result.value;
-
-    logger.info({
-        action: "event.received",
-        id: event.id,
-        type: event.type,
-        source: event.source,
-        traceId: event.traceid,
-        appId: event.appid,
-    });
-
-    const stats = broadcast(event);
-
-    logger.info({
-        action: "broadcast.complete",
-        id: event.id,
-        type: event.type,
-        source: event.source,
-        traceId: event.traceid,
-        appId: event.appid,
-        sent: stats.sent,
-        failed: stats.failed,
-    });
-
-    return c.status(202);
-});
+app.route("/events", sseRouter);
 
 app.get("/events/:appId", (c) => {
     const rawAppId = c.req.param("appId");
@@ -148,48 +69,6 @@ app.get("/events/:appId", (c) => {
     });
 });
 
-// todo: move to other layer
-function broadcast(event: Envelope): { sent: number; failed: number } {
-    // otel span attributes for this event to be sent
-    /* In the future:
-    span.setAttributes({
-      'sse.broadcast.sent': stats.sent,
-      'sse.broadcast.filtered': stats.filtered,
-      'sse.broadcast.failed': stats.failed,
-    });
-    */
-    let sent = 0;
-    let failed = 0;
-
-    const appStreams = streams.get(event.appid);
-
-    // no channel, no broadcast
-    if (!appStreams) {
-        return { sent: 0, failed: 0 };
-    }
-
-    const message: SSEMessage = toSSEMessage(event);
-
-    for (const stream of appStreams.values()) {
-        try {
-            stream.writeSSE(message);
-            sent++;
-        } catch (e) {
-            failed++;
-
-            cleanupStream(event.appid, stream);
-
-            logger.warn({
-                action: "sse.write.failed",
-                appId: event.appid,
-                error: errorMessage(e),
-            });
-        }
-    }
-
-    return { sent, failed };
-}
-
 const server = Bun.serve({
     fetch: app.fetch,
     port: 8088,
@@ -199,8 +78,8 @@ const server = Bun.serve({
 logger.info({ port: server.port }, "Server started and listening");
 
 // pgrep -f "bun run src/index.ts" | xargs kill -TERM
-// or
 // docker stop ...
+// or
 // Possible feature is to send SSE to clients that we are closing the shop
 process.on("SIGTERM", async () => {
     logger.info({ action: "process.SIGMTERM.received" });
