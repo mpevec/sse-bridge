@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { parseEnvelope, type Envelope } from "./envelope";
+import { parseCloudEvent, type CloudEvent } from "./cloudEvent";
 
 function validFixture(overrides?: Record<string, unknown>) {
   return {
@@ -16,10 +16,10 @@ function validFixture(overrides?: Record<string, unknown>) {
   };
 }
 
-describe("parseEnvelope", () => {
+describe("parseCloudEvent", () => {
   describe("success path", () => {
     test("accepts valid CloudEvent input and returns ok discriminant", () => {
-      const result = parseEnvelope(validFixture());
+      const result = parseCloudEvent(validFixture());
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -33,7 +33,7 @@ describe("parseEnvelope", () => {
     });
 
     test("strips unknown properties (Zod default behaviour)", () => {
-      const result = parseEnvelope(validFixture({ unknownExtra: "should be dropped" }));
+      const result = parseCloudEvent(validFixture({ unknownExtra: "should be dropped" }));
 
       expect(result.ok).toBe(true);
       if (result.ok) {
@@ -44,7 +44,7 @@ describe("parseEnvelope", () => {
 
   describe("failure path", () => {
     test("rejects invalid specversion", () => {
-      const result = parseEnvelope(validFixture({ specversion: "0.3" }));
+      const result = parseCloudEvent(validFixture({ specversion: "0.3" }));
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -54,7 +54,7 @@ describe("parseEnvelope", () => {
     });
 
     test("rejects empty id", () => {
-      const result = parseEnvelope(validFixture({ id: "" }));
+      const result = parseCloudEvent(validFixture({ id: "" }));
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -64,7 +64,7 @@ describe("parseEnvelope", () => {
     });
 
     test("rejects empty source", () => {
-      const result = parseEnvelope(validFixture({ source: "" }));
+      const result = parseCloudEvent(validFixture({ source: "" }));
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -74,7 +74,7 @@ describe("parseEnvelope", () => {
     });
 
     test("rejects empty type", () => {
-      const result = parseEnvelope(validFixture({ type: "" }));
+      const result = parseCloudEvent(validFixture({ type: "" }));
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -84,7 +84,7 @@ describe("parseEnvelope", () => {
     });
 
     test("rejects invalid time", () => {
-      const result = parseEnvelope(validFixture({ time: "not-a-date" }));
+      const result = parseCloudEvent(validFixture({ time: "not-a-date" }));
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -94,7 +94,7 @@ describe("parseEnvelope", () => {
     });
 
     test("rejects invalid datacontenttype", () => {
-      const result = parseEnvelope(validFixture({ datacontenttype: "text/plain" }));
+      const result = parseCloudEvent(validFixture({ datacontenttype: "text/plain" }));
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -106,7 +106,7 @@ describe("parseEnvelope", () => {
     });
 
     test("rejects invalid appid", () => {
-      const result = parseEnvelope(validFixture({ appid: "" }));
+      const result = parseCloudEvent(validFixture({ appid: "" }));
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -116,7 +116,7 @@ describe("parseEnvelope", () => {
     });
 
     test("rejects traceid shorter than 32 chars", () => {
-      const result = parseEnvelope(validFixture({ traceid: "tooshort" }));
+      const result = parseCloudEvent(validFixture({ traceid: "tooshort" }));
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -126,7 +126,7 @@ describe("parseEnvelope", () => {
     });
 
     test("rejects traceid longer than 32 chars", () => {
-      const result = parseEnvelope(
+      const result = parseCloudEvent(
         validFixture({ traceid: "abcd1234abcd1234abcd1234abcd1234x" }),
       );
 
@@ -138,7 +138,7 @@ describe("parseEnvelope", () => {
     });
 
     test("rejects non-object data", () => {
-      const result = parseEnvelope(validFixture({ data: "not-an-object" }));
+      const result = parseCloudEvent(validFixture({ data: "not-an-object" }));
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -148,19 +148,19 @@ describe("parseEnvelope", () => {
     });
 
     test("rejects missing required fields", () => {
-      const result = parseEnvelope({});
+      const result = parseCloudEvent({});
       expect(result.ok).toBe(false);
     });
 
     test("rejects non-object input", () => {
-      expect(parseEnvelope(null).ok).toBe(false);
-      expect(parseEnvelope(undefined).ok).toBe(false);
-      expect(parseEnvelope("not an object").ok).toBe(false);
-      expect(parseEnvelope(42).ok).toBe(false);
+      expect(parseCloudEvent(null).ok).toBe(false);
+      expect(parseCloudEvent(undefined).ok).toBe(false);
+      expect(parseCloudEvent("not an object").ok).toBe(false);
+      expect(parseCloudEvent(42).ok).toBe(false);
     });
 
     test("aggregates multiple field errors in a single parse", () => {
-      const result = parseEnvelope(
+      const result = parseCloudEvent(
         validFixture({
           id: "",
           source: "",
@@ -180,14 +180,14 @@ describe("parseEnvelope", () => {
 
   describe("immutability", () => {
     test("returned value is frozen", () => {
-      const result = parseEnvelope(validFixture());
+      const result = parseCloudEvent(validFixture());
       if (!result.ok) throw new Error("fixture failed");
 
       expect(Object.isFrozen(result.value)).toBe(true);
     });
 
     test("mutation attempts throw in strict mode", () => {
-      const result = parseEnvelope(validFixture());
+      const result = parseCloudEvent(validFixture());
       if (!result.ok) throw new Error("fixture failed");
 
       expect(() => {
@@ -196,8 +196,8 @@ describe("parseEnvelope", () => {
     });
 
     test("two parses of identical input produce independent instances", () => {
-      const a = parseEnvelope(validFixture());
-      const b = parseEnvelope(validFixture());
+      const a = parseCloudEvent(validFixture());
+      const b = parseCloudEvent(validFixture());
       if (!a.ok || !b.ok) throw new Error("fixture failed");
 
       expect(a.value).not.toBe(b.value);
@@ -206,17 +206,17 @@ describe("parseEnvelope", () => {
   });
 
   describe("brand integrity", () => {
-    test("structural object cannot be assigned to Envelope (compile-time)", () => {
+    test("structural object cannot be assigned to CloudEvent (compile-time)", () => {
       // @ts-expect-error — plain object lacks the private Symbol brand
-      const _fake: Envelope = validFixture();
+      const _fake: CloudEvent = validFixture();
       expect(true).toBe(true);
     });
 
-    test("parsed value is assignable to Envelope without casts", () => {
-      const result = parseEnvelope(validFixture());
+    test("parsed value is assignable to CloudEvent without casts", () => {
+      const result = parseCloudEvent(validFixture());
       if (!result.ok) throw new Error("fixture failed");
 
-      const typed: Envelope = result.value;
+      const typed: CloudEvent = result.value;
       expect(typed).toBeDefined();
     });
   });

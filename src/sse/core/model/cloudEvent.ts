@@ -3,7 +3,7 @@ import { ApplicationId, parseApplicationId, ApplicationIdSchema } from "./applic
 import { SpecVersion, parseSpecVersion, SpecVersionSchema } from "./specVersion";
 
 // CloudEvents spec v1.0 — required + extensions
-const RawEnvelopeSchema = z.object({
+const RawCloudEventSchema = z.object({
     // ─── Required by CloudEvents spec ───────────────
     specversion: SpecVersionSchema,
     id: z.string().min(1, "id is required"), // unique event ID, for deduplication
@@ -22,8 +22,8 @@ const RawEnvelopeSchema = z.object({
     data: z.record(z.string(), z.unknown()),
 });
 
-const Brand = Symbol("Envelope");
-export type Envelope = Readonly<{
+const Brand = Symbol("CloudEvent");
+export type CloudEvent = Readonly<{
     specversion: SpecVersion;
     id: string;
     source: string;
@@ -36,14 +36,14 @@ export type Envelope = Readonly<{
     [Brand]: true;
 }>;
 
-function create(raw: Omit<Envelope, symbol>): Envelope {
-    return Object.freeze({ ...raw, [Brand]: true }) as Envelope;
+function create(raw: Omit<CloudEvent, symbol>): CloudEvent {
+    return Object.freeze({ ...raw, [Brand]: true }) as CloudEvent;
 }
 
-export function parseEnvelope(
+export function parseCloudEvent(
     input: unknown,
-): { ok: true; value: Envelope } | { ok: false; errors: z.ZodError } {
-    const raw = RawEnvelopeSchema.safeParse(input);
+): { ok: true; value: CloudEvent } | { ok: false; errors: z.ZodError } {
+    const raw = RawCloudEventSchema.safeParse(input);
     if (!raw.success) return { ok: false, errors: raw.error };
 
     const specResult = parseSpecVersion(raw.data.specversion);

@@ -13,7 +13,7 @@ fmt() {
 
 
 echo ""
-echo "=== POST /events — unhappy path (invalid envelope) ==="
+echo "=== POST /events — unhappy path (invalid event) ==="
 body=$(curl -s -X POST "${BASE_URL}/events" \
   -H "Content-Type: application/json" \
   -d '{
