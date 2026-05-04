@@ -5,7 +5,7 @@ import type { CloudEvent } from "../core/model/cloudEvent";
 import type { BroadcastResult, FirehosePort } from "../core/firehose.port";
 import { logger } from "../../logger";
 import { errorMessage } from "../errorMessage";
-import { LogEvent } from "../../shared/logEvents";
+import { LogEvent } from "../../shared/log-events";
 
 export class HonoFirehoseAdapter implements FirehosePort {
     private streams = new Map<string, Set<SSEStreamingApi>>();
@@ -14,6 +14,7 @@ export class HonoFirehoseAdapter implements FirehosePort {
         ReturnType<typeof setInterval>
     >();
 
+    // Not exposed on port, just transport logic
     addStream(appId: string, stream: SSEStreamingApi): void {
         let set = this.streams.get(appId);
         if (!set) {
@@ -23,6 +24,7 @@ export class HonoFirehoseAdapter implements FirehosePort {
         set.add(stream);
     }
 
+    // Not exposed on port, just transport logic
     cleanupStream(appId: ApplicationId, stream: SSEStreamingApi): void {
         const hb = this.streamIntervals.get(stream);
         hb && clearInterval(hb);
@@ -30,6 +32,7 @@ export class HonoFirehoseAdapter implements FirehosePort {
         this.removeStream(appId, stream);
     }
 
+    // Not exposed on port, just transport logic
     setStreamInterval(
         stream: SSEStreamingApi,
         interval: ReturnType<typeof setInterval>,
@@ -94,6 +97,3 @@ export class HonoFirehoseAdapter implements FirehosePort {
         };
     }
 }
-
-// TODO: remove this and move whole registration to real controller
-export const firehoseAdapter = new HonoFirehoseAdapter();

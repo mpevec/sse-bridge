@@ -1,12 +1,11 @@
 import { Context } from "hono";
-import type { FirehosePort } from "./core/firehose.port";
 import { firehoseBroadcast } from "./core/service/firehose-broadcast";
 import { logger } from "../logger";
 import { CloudEvent, parseCloudEvent } from "./core/model/cloudEvent";
 import { SSEStreamingApi, streamSSE } from "hono/streaming";
 import { ApplicationId, parseApplicationId } from "./core/model/applicationId";
 import { errorMessage } from "./errorMessage";
-import { LogEvent } from "../shared/logEvents";
+import { LogEvent } from "../shared/log-events";
 
 /*
  - core (as Application Core)
@@ -14,12 +13,10 @@ import { LogEvent } from "../shared/logEvents";
     - service (application services)
  - infra (as the right side ie. secondary adapters)
  - rest.controller.ts (as left side ie. primary adapters ie. controllers)
-
-  todo: make a skill for my arch.
 */
 export async function broadcastEvent(c: Context): Promise<any> {
     // Deps:
-    const firehosePort: FirehosePort = c.get("firehosePort");
+    const firehosePort = c.get("firehosePort");
 
     const rawBody = await c.req.json();
 
@@ -60,7 +57,7 @@ export async function broadcastEvent(c: Context): Promise<any> {
 
 export async function openSSE(c: Context): Promise<any> {
     // Deps:
-    const firehosePort: FirehosePort = c.get("firehosePort");
+    const firehosePort = c.get("firehosePort");
 
     const rawAppId = c.req.param("appId");
 
