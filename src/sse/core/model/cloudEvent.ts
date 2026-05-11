@@ -16,7 +16,7 @@ const RawCloudEventSchema = z.object({
 
     // ─── Our extensions ────────────────────────────
     appid: ApplicationIdSchema,
-    traceid: z.string().length(32, "traceid must be exactly 32 characters"),
+    traceparent: z.string().regex(/^00-[0-9a-fA-F]{32}-[0-9a-fA-F]{16}-[0-9a-fA-F]{2}$/, "traceparent must be a valid W3C trace context"),
 
     // ─── Payload ───────────────────────────────────
     data: z.record(z.string(), z.unknown()),
@@ -31,7 +31,7 @@ export type CloudEvent = Readonly<{
     time: string;
     datacontenttype: "application/json";
     appid: ApplicationId;
-    traceid: string;
+    traceparent: string;
     data: Record<string, unknown>;
     [Brand]: true;
 }>;

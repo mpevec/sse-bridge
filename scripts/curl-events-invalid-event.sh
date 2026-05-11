@@ -19,6 +19,6 @@ body=$(curl -s -X POST "${BASE_URL}/events" \
   -d '{
     "specversion": "0.3",
     "id": "",
-    "traceid": "tooshort"
+    "traceparent": "tooshort"
   }')
 echo "$body" | fmt

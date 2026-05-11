@@ -35,7 +35,7 @@ export async function broadcastEvent(c: Context): Promise<any> {
         id: event.id,
         type: event.type,
         source: event.source,
-        traceId: event.traceid,
+        traceparent: event.traceparent,
         appId: event.appid,
     });
 
@@ -46,7 +46,7 @@ export async function broadcastEvent(c: Context): Promise<any> {
         id: event.id,
         type: event.type,
         source: event.source,
-        traceId: event.traceid,
+        traceparent: event.traceparent,
         appId: event.appid,
         sent: stats.sent,
         failed: stats.failed,

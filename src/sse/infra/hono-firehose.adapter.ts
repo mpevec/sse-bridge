@@ -90,7 +90,8 @@ export class HonoFirehoseAdapter implements FirehosePort {
                 id: cloudEvent.id,
                 type: cloudEvent.type,
                 source: cloudEvent.source,
-                traceId: cloudEvent.traceid,
+                // TODO: to be changed, cause parent is actually sse bridge.
+                traceparent: cloudEvent.traceparent,
                 time: cloudEvent.time,
                 data: cloudEvent.data,
             }),

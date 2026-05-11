@@ -10,7 +10,7 @@ function validFixture(overrides?: Record<string, unknown>) {
     time: "2024-01-15T09:30:00.000Z",
     datacontenttype: "application/json" as const,
     appid: "expair",
-    traceid: "abcd1234abcd1234abcd1234abcd1234",
+    traceparent: "00-abcd1234abcd1234abcd1234abcd1234-b7ad6b7169203331-01",
     data: { score: 42 },
     ...overrides,
   };
@@ -27,7 +27,7 @@ describe("parseCloudEvent", () => {
         expect(result.value.source).toBe("app.ranker");
         expect(result.value.type).toBe("analysis.completed");
         expect(result.value.appid as string).toBe("expair");
-        expect(result.value.traceid).toBe("abcd1234abcd1234abcd1234abcd1234");
+        expect(result.value.traceparent).toBe("00-abcd1234abcd1234abcd1234abcd1234-b7ad6b7169203331-01");
         expect(result.value.data).toEqual({ score: 42 });
       }
     });
@@ -115,25 +115,25 @@ describe("parseCloudEvent", () => {
       }
     });
 
-    test("rejects traceid shorter than 32 chars", () => {
-      const result = parseCloudEvent(validFixture({ traceid: "tooshort" }));
+    test("rejects invalid traceparent", () => {
+      const result = parseCloudEvent(validFixture({ traceparent: "tooshort" }));
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        const issue = result.errors.issues.find((i) => i.path[0] === "traceid");
-        expect(issue?.message).toBe("traceid must be exactly 32 characters");
+        const issue = result.errors.issues.find((i) => i.path[0] === "traceparent");
+        expect(issue?.message).toBe("traceparent must be a valid W3C trace context");
       }
     });
 
-    test("rejects traceid longer than 32 chars", () => {
+    test("rejects traceparent with wrong version", () => {
       const result = parseCloudEvent(
-        validFixture({ traceid: "abcd1234abcd1234abcd1234abcd1234x" }),
+        validFixture({ traceparent: "01-abcd1234abcd1234abcd1234abcd1234-b7ad6b7169203331-01" }),
       );
 
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        const issue = result.errors.issues.find((i) => i.path[0] === "traceid");
-        expect(issue?.message).toBe("traceid must be exactly 32 characters");
+        const issue = result.errors.issues.find((i) => i.path[0] === "traceparent");
+        expect(issue?.message).toBe("traceparent must be a valid W3C trace context");
       }
     });
 
@@ -164,7 +164,7 @@ describe("parseCloudEvent", () => {
         validFixture({
           id: "",
           source: "",
-          traceid: "short",
+          traceparent: "short",
         }),
       );
 
@@ -173,7 +173,7 @@ describe("parseCloudEvent", () => {
         const paths = result.errors.issues.map((i) => i.path[0]);
         expect(paths).toContain("id");
         expect(paths).toContain("source");
-        expect(paths).toContain("traceid");
+        expect(paths).toContain("traceparent");
       }
     });
   });
