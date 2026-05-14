@@ -2,19 +2,8 @@ import "./telemetry";
 import { Hono } from "hono";
 import { logger } from "./logger";
 import { sseRoutes } from "./router";
-import { httpInstrumentationMiddleware } from "@hono/otel";
-import { trace } from "@opentelemetry/api";
 
 const app = new Hono();
-
-const tracer = trace.getTracer("sse-bridge");
-
-export const otelMw = httpInstrumentationMiddleware({
-    serviceName: "sse-bridge",
-    serviceVersion: "0.0.0",
-});
-// Short-lived routes get the middleware
-app.use("/health/live", otelMw);
 
 app.get("/health/live", (c) =>
     c.json({ status: "ok", uptime: process.uptime() }),
