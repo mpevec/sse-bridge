@@ -3,8 +3,6 @@ import * as restController from "./sse/rest.controller";
 import { HonoFirehoseAdapter } from "./sse/infra/hono-firehose.adapter";
 import { Dependency } from "hono-simple-di";
 
-// TODO: how to test? Comparing to Elixir. Cause I need to have a mock version of HonoFirehoseAdapter..
-// But in general I need to test HonoFirehoseAdapter in isolation.
 export function sseRoutes() {
     // Deps
     const firehosePortDep = new Dependency(() => new HonoFirehoseAdapter());

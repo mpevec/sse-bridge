@@ -6,8 +6,16 @@ import { SSEStreamingApi, streamSSE } from "hono/streaming";
 import { ApplicationId, parseApplicationId } from "./core/model/applicationId";
 import { errorMessage } from "./errorMessage";
 import { LogEvent } from "../shared/log-events";
+import {
+    context,
+    propagation,
+    SpanKind,
+    SpanStatusCode,
+} from "@opentelemetry/api";
+import { tracer } from "../telemetry";
 
 /*
+Architecture:
  - core (as Application Core)
     - model (domain models)
     - service (application services)
@@ -35,24 +43,60 @@ export async function broadcastEvent(c: Context): Promise<any> {
         id: event.id,
         type: event.type,
         source: event.source,
-        traceId: event.traceid,
+        traceparent: event.traceparent,
         appId: event.appid,
     });
 
-    const stats = firehoseBroadcast(firehosePort, event);
-
-    logger.info({
-        action: LogEvent.BROADCAST_COMPLETE,
-        id: event.id,
-        type: event.type,
-        source: event.source,
-        traceId: event.traceid,
-        appId: event.appid,
-        sent: stats.sent,
-        failed: stats.failed,
+    const djangoContext = propagation.extract(context.active(), {
+        traceparent: event.traceparent,
     });
 
-    return c.body(null, 202);
+    return tracer.startActiveSpan(
+        LogEvent.EVENT_RECEIVED,
+        {
+            kind: SpanKind.CONSUMER,
+            attributes: {
+                "cloudevents.event_id": event.id,
+                "cloudevents.event_type": event.type,
+                "cloudevents.event_source": event.source,
+                "app.id": event.appid,
+            },
+        },
+        djangoContext, // ← THIS is what attaches us to Django's trace
+        async (receivedSpan) => {
+            // NOTE: In general, when using startActiveSpan, you want try/catch/finally
+            // so the span is always ended and errors are recorded:
+            //
+            //   try { ... }
+            //   catch (err) {
+            //     receivedSpan.recordException(err as Error);
+            //     receivedSpan.setStatus({ code: SpanStatusCode.ERROR, message: ... });
+            //     return c.json({ error: ... }, 500);
+            //   }
+            //   finally { receivedSpan.end(); }
+            //
+            // Here we skip it because firehoseBroadcast swallows all stream errors
+            // internally (failed count) and nothing else in this path can throw.
+            const stats = firehoseBroadcast(firehosePort, event);
+
+            logger.info({
+                action: LogEvent.BROADCAST_COMPLETE,
+                id: event.id,
+                type: event.type,
+                source: event.source,
+                traceparent: event.traceparent,
+                appId: event.appid,
+                sent: stats.sent,
+                failed: stats.failed,
+            });
+
+            receivedSpan.setAttribute("sse.sent", stats.sent);
+            receivedSpan.setAttribute("sse.failed", stats.failed);
+            receivedSpan.setStatus({ code: SpanStatusCode.OK });
+            receivedSpan.end();
+            return c.body(null, 202);
+        },
+    );
 }
 
 export async function openSSE(c: Context): Promise<any> {

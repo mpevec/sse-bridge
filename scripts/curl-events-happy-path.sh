@@ -22,7 +22,7 @@ body=$(curl -s -X POST "${BASE_URL}/events" \
     "time": "2024-01-15T09:30:00.000Z",
     "datacontenttype": "application/json",
     "appid": "expair",
-    "traceid": "abcd1234abcd1234abcd1234abcd1234",
+    "traceparent": "00-11111111111111111111111111111111-2222222222222222-01",
     "data": { "score": 42 }
   }')
 echo "$body" | fmt

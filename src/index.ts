@@ -1,3 +1,4 @@
+import "./telemetry";
 import { Hono } from "hono";
 import { logger } from "./logger";
 import { sseRoutes } from "./router";

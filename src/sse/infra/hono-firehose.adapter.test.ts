@@ -19,7 +19,7 @@ function makeCloudEvent(appid: string = "expair"): CloudEvent {
         time: "2024-01-15T09:30:00.000Z",
         datacontenttype: "application/json",
         appid,
-        traceid: "abcd1234abcd1234abcd1234abcd1234",
+        traceparent: "00-abcd1234abcd1234abcd1234abcd1234-b7ad6b7169203331-01",
         data: { score: 42 },
     });
     if (!result.ok) throw new Error("invalid cloudEvent fixture");
