@@ -10,19 +10,18 @@ import {
 } from "@opentelemetry/sdk-trace-base";
 import { propagation, trace } from "@opentelemetry/api";
 import { W3CTraceContextPropagator } from "@opentelemetry/core";
-
-const serviceName = "sse-bridge";
+import { SERVICE_NAME } from "./config";
 
 new NodeSDK({
     resource: resourceFromAttributes({
-        [ATTR_SERVICE_NAME]: serviceName,
+        [ATTR_SERVICE_NAME]: SERVICE_NAME,
         [ATTR_SERVICE_VERSION]: process.env.npm_package_version ?? "1.0.0",
     }),
     spanProcessors: [new SimpleSpanProcessor(new ConsoleSpanExporter())],
 }).start();
 
-// need it, to get trace from cloud events
+// need it, to get the trace from cloud events
 propagation.setGlobalPropagator(new W3CTraceContextPropagator());
 
 // instrumentation scope (since single service in this app, we have single instrumentation)
-export const tracer = trace.getTracer(serviceName);
+export const tracer = trace.getTracer(SERVICE_NAME);

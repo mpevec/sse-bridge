@@ -6,6 +6,7 @@ import type { BroadcastResult, FirehosePort } from "../core/firehose.port";
 import { logger } from "../../logger";
 import { errorMessage } from "../errorMessage";
 import { LogEvent } from "../../shared/log-events";
+import { context, trace } from "@opentelemetry/api";
 
 export class HonoFirehoseAdapter implements FirehosePort {
     private streams = new Map<string, Set<SSEStreamingApi>>();
@@ -83,6 +84,8 @@ export class HonoFirehoseAdapter implements FirehosePort {
     }
 
     private toSSEMessage(cloudEvent: CloudEvent): SSEMessage {
+        const traceId = trace.getSpanContext(context.active())?.traceId;
+
         return {
             event: cloudEvent.type,
             id: cloudEvent.id,
@@ -90,8 +93,7 @@ export class HonoFirehoseAdapter implements FirehosePort {
                 id: cloudEvent.id,
                 type: cloudEvent.type,
                 source: cloudEvent.source,
-                // TODO: to be changed, cause parent is actually sse bridge.
-                traceparent: cloudEvent.traceparent,
+                traceId,
                 time: cloudEvent.time,
                 data: cloudEvent.data,
             }),

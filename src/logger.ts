@@ -1,15 +1,22 @@
 import pino from "pino";
 import { trace } from "@opentelemetry/api";
+import { SERVICE_NAME } from "./config";
 
 export const logger = pino({
-    // todo: TO BE CHECKED
+    // in case we have otel context available, we also add these to the log for correlation
     mixin() {
         const ctx = trace.getActiveSpan()?.spanContext();
-        return ctx ? { trace_id: ctx.traceId, span_id: ctx.spanId } : {};
+        return ctx
+            ? {
+                  trace_id: ctx.traceId,
+                  span_id: ctx.spanId,
+                  trace_flags: ctx.traceFlags,
+              }
+            : {};
     },
     level: "info",
     base: {
-        service: "sse-bridge",
+        service: SERVICE_NAME,
         pid: process.pid,
     },
     timestamp: pino.stdTimeFunctions.isoTime,
