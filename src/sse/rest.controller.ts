@@ -127,7 +127,7 @@ export async function openSSE(c: Context): Promise<any> {
 
                 firehosePort.cleanupStream(applicationId, stream);
             }
-        }, 5_000);
+        }, 15_000);
 
         firehosePort.setStreamInterval(stream, heartbeat);
 
