@@ -1,3 +1,6 @@
+1. Install Bun (alternative to nodejs)
+curl -fsSL https://bun.com/install | bash
+
 To install dependencies:
 ```sh
 bun install

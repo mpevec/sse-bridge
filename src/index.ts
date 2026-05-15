@@ -2,8 +2,9 @@ import "./telemetry";
 import { Hono } from "hono";
 import { logger } from "./logger";
 import { sseRoutes } from "./router";
+import { BASE_PATH } from "./config";
 
-const app = new Hono();
+const app = new Hono().basePath(BASE_PATH);
 
 app.get("/health/live", (c) =>
     c.json({ status: "ok", uptime: process.uptime() }),
