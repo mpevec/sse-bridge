@@ -27,7 +27,7 @@ describe("SSE integration", () => {
         const controller = new AbortController();
 
         // 1. Open SSE connection
-        const sseRes = await app.request("/events/expair", {
+        const sseRes = await app.request(`${BASE_PATH}/events/expair`, {
             signal: controller.signal,
         });
         expect(sseRes.status).toBe(200);
@@ -38,7 +38,7 @@ describe("SSE integration", () => {
         const reader = sseRes.body!.getReader();
 
         // 2. POST a CloudEvent
-        const postRes = await app.request("/events", {
+        const postRes = await app.request(`${BASE_PATH}/events`, {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify(validCloudEvent()),

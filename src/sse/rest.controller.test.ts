@@ -26,7 +26,7 @@ describe("broadcastEvent sad paths", () => {
         const { app, register } = mountController(broadcastEvent);
         register("POST", "/");
 
-        const res = await app.request("/", {
+        const res = await app.request(BASE_PATH, {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ garbage: true }),
@@ -39,7 +39,7 @@ describe("broadcastEvent sad paths", () => {
         const { app, register } = mountController(broadcastEvent);
         register("POST", "/");
 
-        const res = await app.request("/", {
+        const res = await app.request(BASE_PATH, {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ id: "only-id" }),
@@ -54,7 +54,7 @@ describe("openSSE sad paths", () => {
         const { app, register } = mountController(openSSE);
         register("GET", "/:appId");
 
-        const res = await app.request("/invalid-app-id");
+        const res = await app.request(`${BASE_PATH}/invalid-app-id`);
 
         expect(res.status).toBe(400);
     });
