@@ -1,6 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import { Hono } from "hono";
 import { broadcastEvent, openSSE } from "./rest.controller";
+import { BASE_PATH } from "../config";
 
 function stubAdapter() {
     return {
@@ -12,7 +13,7 @@ function stubAdapter() {
 }
 
 function mountController(handler: (c: any) => Promise<any>) {
-    const app = new Hono();
+    const app = new Hono().basePath(BASE_PATH);
     app.use((c: any, next: any) => {
         c.set("firehosePort", stubAdapter());
         return next();

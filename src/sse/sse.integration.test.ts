@@ -1,6 +1,7 @@
 import { describe, test, expect } from "bun:test";
 import { Hono } from "hono";
 import { sseRoutes } from "../router";
+import { BASE_PATH } from "../config";
 
 function validCloudEvent(overrides?: Record<string, unknown>) {
     return {
@@ -19,7 +20,7 @@ function validCloudEvent(overrides?: Record<string, unknown>) {
 
 describe("SSE integration", () => {
     test("happy path: posted CloudEvent is received by SSE subscriber", async () => {
-        const app = new Hono();
+        const app = new Hono().basePath(BASE_PATH);
         app.route("/events", sseRoutes());
 
         // We need it to signal SSE connection to be closed. Basically for cleanup of the test.
