@@ -2,7 +2,7 @@ import "./telemetry";
 import { Hono } from "hono";
 import { logger } from "./logger";
 import { sseRoutes } from "./router";
-import { BASE_PATH } from "./config";
+import { BASE_PATH, PORT } from "./config";
 
 const app = new Hono().basePath(BASE_PATH);
 
@@ -14,7 +14,7 @@ app.route("/events", sseRoutes());
 
 const server = Bun.serve({
     fetch: app.fetch,
-    port: 8088,
+    port: PORT,
     idleTimeout: 0, // disables idle timeout for SSE
 });
 
