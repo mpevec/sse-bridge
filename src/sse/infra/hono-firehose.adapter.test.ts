@@ -30,6 +30,8 @@ function mockStream(): { stream: SSEStreamingApi; messages: SSEMessage[] } {
     const messages: SSEMessage[] = [];
     const stream = {
         writeSSE: (msg: SSEMessage) => messages.push(msg),
+        aborted: false,
+        closed: false,
     } as unknown as SSEStreamingApi;
     return { stream, messages };
 }
@@ -39,6 +41,18 @@ function failingStream(): SSEStreamingApi {
         writeSSE: () => {
             throw new Error("stream broken");
         },
+        aborted: false,
+        closed: false,
+    } as unknown as SSEStreamingApi;
+}
+
+function deadStream(aborted: boolean, closed: boolean): SSEStreamingApi {
+    return {
+        writeSSE: () => {
+            throw new Error("should not be called");
+        },
+        aborted,
+        closed,
     } as unknown as SSEStreamingApi;
 }
 
@@ -113,6 +127,28 @@ describe("HonoFirehoseAdapter", () => {
 
         // Broken stream should have been removed from registry
         const result2 = adapter.broadcast(makeAppId("expair"), event);
+        expect(result2.sent).toBe(1);
+        expect(result2.failed).toBe(0);
+    });
+
+    test("broadcast evicts dead streams (aborted or closed) without calling writeSSE", () => {
+        const adapter = new HonoFirehoseAdapter();
+        const abortedStream = deadStream(true, false);
+        const closedStream = deadStream(false, true);
+        const { stream: live, messages } = mockStream();
+
+        adapter.addStream("expair", abortedStream);
+        adapter.addStream("expair", closedStream);
+        adapter.addStream("expair", live);
+
+        const result = adapter.broadcast(makeAppId("expair"), makeCloudEvent());
+
+        expect(result.sent).toBe(1);
+        expect(result.failed).toBe(0);
+        expect(messages).toHaveLength(1);
+
+        // Dead streams should have been removed from registry
+        const result2 = adapter.broadcast(makeAppId("expair"), makeCloudEvent());
         expect(result2.sent).toBe(1);
         expect(result2.failed).toBe(0);
     });

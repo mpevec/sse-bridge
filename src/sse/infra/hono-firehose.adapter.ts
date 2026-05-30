@@ -54,6 +54,11 @@ export class HonoFirehoseAdapter implements FirehosePort {
         const message: SSEMessage = this.toSSEMessage(event);
 
         for (const stream of appStreams.values()) {
+            if (stream.aborted || stream.closed) {
+                this.cleanupStream(appId, stream);
+                continue;
+            }
+
             try {
                 stream.writeSSE(message);
                 sent++;

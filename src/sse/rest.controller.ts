@@ -116,6 +116,10 @@ export async function openSSE(c: Context): Promise<any> {
         firehosePort.addStream(applicationId, stream);
 
         const heartbeat = setInterval(() => {
+            if (stream.aborted || stream.closed) {
+                firehosePort.cleanupStream(applicationId, stream);
+                return;
+            }
             try {
                 stream.write(`: ping\n\n`);
             } catch (e) {
@@ -136,6 +140,12 @@ export async function openSSE(c: Context): Promise<any> {
             firehosePort.cleanupStream(applicationId, stream);
 
             logger.info({ action: LogEvent.SSE_CLOSE, appId: applicationId });
+        });
+
+        c.req.raw.signal.addEventListener("abort", () => {
+            if (!stream.aborted) {
+                stream.abort();
+            }
         });
 
         // This promise never resolves, keeping the function execution active
