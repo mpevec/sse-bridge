@@ -115,6 +115,20 @@ export async function openSSE(c: Context): Promise<any> {
         logger.info({ action: LogEvent.SSE_OPEN, appId: applicationId });
         firehosePort.addStream(applicationId, stream);
 
+        // send right away something to flush the stream otherwise browser is no opening stream until
+        // first heartbit (which flushes).
+        try {
+            await stream.write(`: connected\n\n`);
+        } catch (e) {
+            logger.warn({
+                action: LogEvent.SSE_WRITE_FAILED,
+                appId: applicationId,
+                error: errorMessage(e),
+            });
+            firehosePort.cleanupStream(applicationId, stream);
+            return;
+        }
+
         const heartbeat = setInterval(() => {
             if (stream.aborted || stream.closed) {
                 firehosePort.cleanupStream(applicationId, stream);
